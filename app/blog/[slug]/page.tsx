@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { client } from '../../lib/sanity'
 import Image from 'next/image'
 import { urlFor } from '../../lib/image'
@@ -109,6 +110,48 @@ const portableTextComponents = {
       )
     },
   },
+}
+
+export async function generateMetadata({
+  params,
+}: BlogPostPageProps): Promise<Metadata> {
+  const { slug } = await params
+
+  const post = await client.fetch(
+    `*[_type == "blogPost" && slug.current == $slug][0]{
+      title,
+      excerpt,
+      mainImage
+    }`,
+    { slug }
+  )
+
+  if (!post) {
+    return {
+      title: 'Blog post not found',
+    }
+  }
+
+  const imageUrl = post.mainImage
+    ? urlFor(post.mainImage).width(1200).height(630).url()
+    : undefined
+
+  return {
+    title: post.title,
+    description: post.excerpt || 'Article by Cristian Baltoiu.',
+    openGraph: {
+      title: post.title,
+      description: post.excerpt || 'Article by Cristian Baltoiu.',
+      type: 'article',
+      images: imageUrl ? [imageUrl] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt || 'Article by Cristian Baltoiu.',
+      images: imageUrl ? [imageUrl] : [],
+    },
+  }
 }
 
 export default async function BlogPost({ params }: BlogPostPageProps) {
